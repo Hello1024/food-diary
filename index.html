@@ -13,6 +13,7 @@
     
     <!-- Google APIs -->
     <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div class="container">
@@ -373,10 +374,10 @@
 
                 <div class="google-auth-section" id="google-auth-section" style="display: none;">
                     <div class="auth-info">
-                        <h4>🔐 Authentification Google requise</h4>
-                        <p>Pour exporter vers Google Sheets, vous devez vous connecter à votre compte Google.</p>
-                        <button id="authorize-google" class="btn-secondary">🔑 Se connecter à Google</button>
-                        <button id="signout-google" class="btn-secondary" style="display: none;">🚪 Se déconnecter</button>
+                        <h4>🔐 Google Authentication Required</h4>
+                        <p>To export to Google Sheets, you must connect to your Google account.</p>
+                        <button id="authorize-google" class="btn-secondary">🔑 Connect to Google</button>
+                        <button id="signout-google" class="btn-secondary" style="display: none;">🚪 Disconnect</button>
                     </div>
                     <div class="auth-status" id="auth-status"></div>
                 </div>

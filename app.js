@@ -23,11 +23,13 @@ class FoodDiaryApp {
         this.DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
         this.SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
         this.foo='ENulgmI0CjjCOJWWDBvr-ZEYiQ';
-        this.API_KEY = 'GOCSPX-A0'+this.foo; // Users will need to replace this
-        this.CLIENT_ID = '417455950863-3tssvb2vtv0sr8u6ib4r793kri4nuj5v.apps.googleusercontent.com'; // Users will need to replace this
+        this.API_KEY = 'GOCSPX-A0'+this.foo;
+        this.CLIENT_ID = '417455950863-3tssvb2vtv0sr8u6ib4r793kri4nuj5v.apps.googleusercontent.com';
         this.gapi = null;
         this.isGoogleApiInitialized = false;
         this.isAuthorized = false;
+        this.tokenClient = null;
+        this.accessToken = null;
         
         this.init();
     }
@@ -755,62 +757,79 @@ class FoodDiaryApp {
         this.showNotification(`Export quotidien pour le ${selectedDate} téléchargé!`, 'success');
     }
 
-    // Google Sheets API Integration
+    // Google Sheets API Integration using new Google Identity Services
     async initializeGoogleAPI() {
         try {
-            // Wait for gapi to load
-            if (typeof gapi === 'undefined') {
-                console.log('Google API not loaded yet, will retry...');
+            // Wait for both gapi and google to load
+            if (typeof gapi === 'undefined' || typeof google === 'undefined') {
+                console.log('Google APIs not loaded yet, will retry...');
                 setTimeout(() => this.initializeGoogleAPI(), 1000);
                 return;
             }
 
-            await gapi.load('auth2', async () => {
-                await gapi.auth2.init({
-                    client_id: this.CLIENT_ID,
-                });
-                
-                const authInstance = gapi.auth2.getAuthInstance();
-                this.isAuthorized = authInstance.isSignedIn.get();
-                this.updateAuthUI();
+            // Initialize gapi client
+            await new Promise((resolve, reject) => {
+                gapi.load('client', resolve);
             });
 
-            await gapi.load('client', async () => {
-                await gapi.client.init({
-                    apiKey: this.API_KEY,
-                    discoveryDocs: [this.DISCOVERY_DOC],
-                });
-                this.isGoogleApiInitialized = true;
-                console.log('Google Sheets API initialized');
+            await gapi.client.init({
+                apiKey: this.API_KEY,
+                discoveryDocs: [this.DISCOVERY_DOC],
             });
+
+            // Initialize Google Identity Services
+            this.tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: this.CLIENT_ID,
+                scope: this.SCOPES,
+                callback: (tokenResponse) => {
+                    console.log('Token received:', tokenResponse);
+                    if (tokenResponse.access_token) {
+                        this.accessToken = tokenResponse.access_token;
+                        this.isAuthorized = true;
+                        this.updateAuthUI();
+                        this.showNotification('Google connection successful!', 'success');
+                    }
+                },
+            });
+
+            this.isGoogleApiInitialized = true;
+            console.log('Google Sheets API initialized with new Identity Services');
 
             // Show Google auth section
             document.getElementById('google-auth-section').style.display = 'block';
+            this.updateAuthUI();
+
         } catch (error) {
             console.error('Error initializing Google API:', error);
-            this.showNotification('Erreur lors de l\'initialisation de l\'API Google. Vérifiez vos clés API.', 'error');
+            this.showNotification('Error initializing Google API. Check your API keys.', 'error');
         }
     }
 
     async handleAuthClick() {
         try {
-            const authInstance = gapi.auth2.getAuthInstance();
-            const user = await authInstance.signIn();
-            this.isAuthorized = true;
-            this.updateAuthUI();
-            this.showNotification('Connexion Google réussie!', 'success');
+            if (!this.tokenClient) {
+                throw new Error('Token client not initialized');
+            }
+            
+            // Request access token
+            this.tokenClient.requestAccessToken({prompt: 'consent'});
         } catch (error) {
             console.error('Error during authentication:', error);
-            this.showNotification('Erreur lors de la connexion à Google.', 'error');
+            this.showNotification('Error connecting to Google.', 'error');
         }
     }
 
     handleSignoutClick() {
-        const authInstance = gapi.auth2.getAuthInstance();
-        authInstance.signOut();
+        if (this.accessToken) {
+            // Revoke the access token
+            google.accounts.oauth2.revoke(this.accessToken, () => {
+                console.log('Access token revoked');
+            });
+            this.accessToken = null;
+        }
         this.isAuthorized = false;
         this.updateAuthUI();
-        this.showNotification('Déconnexion Google réussie.', 'info');
+        this.showNotification('Google disconnection successful.', 'info');
     }
 
     updateAuthUI() {
@@ -822,13 +841,13 @@ class FoodDiaryApp {
         if (this.isAuthorized) {
             authorizeButton.style.display = 'none';
             signoutButton.style.display = 'inline-block';
-            authStatus.innerHTML = '<span style="color: green;">✅ Connecté à Google</span>';
+            authStatus.innerHTML = '<span style="color: green;">✅ Connected to Google</span>';
             exportGoogleButton.disabled = false;
             exportGoogleButton.style.opacity = '1';
         } else {
             authorizeButton.style.display = 'inline-block';
             signoutButton.style.display = 'none';
-            authStatus.innerHTML = '<span style="color: orange;">⚠️ Non connecté</span>';
+            authStatus.innerHTML = '<span style="color: orange;">⚠️ Not connected</span>';
             exportGoogleButton.disabled = true;
             exportGoogleButton.style.opacity = '0.5';
         }
@@ -836,22 +855,27 @@ class FoodDiaryApp {
 
     async exportToGoogleSheets() {
         if (!this.isGoogleApiInitialized) {
-            this.showNotification('L\'API Google n\'est pas encore initialisée.', 'error');
+            this.showNotification('Google API is not yet initialized.', 'error');
             return;
         }
 
-        if (!this.isAuthorized) {
-            this.showNotification('Veuillez vous connecter à Google d\'abord.', 'error');
+        if (!this.isAuthorized || !this.accessToken) {
+            this.showNotification('Please connect to Google first.', 'error');
             return;
         }
 
         if (this.entries.length === 0) {
-            this.showNotification('Aucune donnée à exporter.', 'error');
+            this.showNotification('No data to export.', 'error');
             return;
         }
 
         try {
-            this.showNotification('Création du Google Sheet en cours...', 'info');
+            // Set the access token for gapi client
+            gapi.client.setToken({
+                access_token: this.accessToken
+            });
+
+            this.showNotification('Creating Google Sheet...', 'info');
 
             // Create a new spreadsheet
             const spreadsheetResponse = await gapi.client.sheets.spreadsheets.create({
@@ -928,11 +952,11 @@ class FoodDiaryApp {
             // Open the spreadsheet
             window.open(spreadsheetUrl, '_blank');
             
-            this.showNotification('Google Sheet créé avec succès! Le fichier s\'ouvre dans un nouvel onglet.', 'success');
+            this.showNotification('Google Sheet created successfully! The file opens in a new tab.', 'success');
 
         } catch (error) {
             console.error('Error exporting to Google Sheets:', error);
-            this.showNotification('Erreur lors de l\'export vers Google Sheets: ' + error.message, 'error');
+            this.showNotification('Error exporting to Google Sheets: ' + error.message, 'error');
         }
     }
 
