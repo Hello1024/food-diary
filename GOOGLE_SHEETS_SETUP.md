@@ -75,7 +75,62 @@ The code now uses:
 
 ## Troubleshooting:
 
+### "API key not valid. Please pass a valid API key" Error:
+
+This error occurs when the Google API key is incorrect, restricted, or not properly configured. Here's how to fix it:
+
+#### **Step 1: Check Your API Key**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Navigate to "APIs & Services" > "Credentials"
+3. Find your API Key in the list
+4. Click on the API key name to view details
+
+#### **Step 2: Verify API Key Restrictions**
+In the API key details page:
+1. **Application restrictions**: 
+   - Set to "HTTP referrers (web sites)"
+   - Add your domain(s): `http://localhost:8000/*` (for testing) and your production domain
+2. **API restrictions**:
+   - Select "Restrict key"
+   - Enable these APIs:
+     - ✅ **Google Sheets API**
+     - ✅ **Google Drive API**
+   - Make sure both APIs are checked
+
+#### **Step 3: Regenerate API Key (if needed)**
+If the key still doesn't work:
+1. In the API key details, click "Regenerate key"
+2. Copy the new key
+3. Update `app.js` with the new key
+
+#### **Step 4: Update app.js**
+The current code has a concatenated API key. Replace this section in `app.js`:
+
+```javascript
+// Find this line (around line 25):
+this.foo='ENulgmI0CjjCOJWWDBvr-ZEYiQ';
+this.API_KEY = 'GOCSPX-A0'+this.foo;
+
+// Replace with:
+this.API_KEY = 'YOUR_COMPLETE_API_KEY_HERE';
+```
+
+#### **Step 5: Test the API Key**
+You can test if your API key works by opening this URL in your browser:
+```
+https://sheets.googleapis.com/v4/spreadsheets/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/values/Class%20Data!A2:E?key=YOUR_API_KEY_HERE
+```
+Replace `YOUR_API_KEY_HERE` with your actual API key. If it works, you'll see JSON data.
+
+### Other Common Issues:
+
 - **Authentication error**: Check that your domain is authorized in the OAuth credentials
 - **API not initialized**: Verify that the APIs are enabled in Google Cloud Console
 - **Invalid key**: Check that you have correctly copied the API key and Client ID
 - **Deprecated library error**: This has been fixed - the app now uses Google Identity Services
+
+### **Still Having Issues?**
+
+1. **Double-check API is enabled**: Go to "APIs & Services" > "Library" and search for "Google Sheets API" - make sure it shows as "ENABLED"
+2. **Check quota**: In "APIs & Services" > "Quotas", make sure you haven't exceeded limits
+3. **Try a fresh API key**: Create a completely new API key and use that instead

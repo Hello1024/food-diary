@@ -22,8 +22,8 @@ class FoodDiaryApp {
         // Google Sheets API configuration
         this.DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
         this.SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
-        this.foo='ENulgmI0CjjCOJWWDBvr-ZEYiQ';
-        this.API_KEY = 'GOCSPX-A0'+this.foo;
+        this.foo='7QVlGm1-2ueoGFo';
+        this.API_KEY = 'AIzaSyBaQSsExrlKu6dMHXq_'+this.foo;
         this.CLIENT_ID = '417455950863-3tssvb2vtv0sr8u6ib4r793kri4nuj5v.apps.googleusercontent.com';
         this.gapi = null;
         this.isGoogleApiInitialized = false;
