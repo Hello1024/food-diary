@@ -93,28 +93,16 @@ class FoodDiaryApp {
     setupIntensitySliders() {
         document.querySelectorAll('input[type="range"]').forEach(slider => {
             const valueSpan = slider.nextElementSibling;
-            const emojiElement = valueSpan.nextElementSibling;
             
-            // Update value display and emoji
+            // Update value display
             slider.addEventListener('input', (e) => {
                 const value = parseInt(e.target.value);
                 valueSpan.textContent = value;
-                
-                if (emojiElement && emojiElement.classList.contains('intensity-emoji')) {
-                    emojiElement.textContent = this.getIntensityEmoji(value);
-                    emojiElement.style.animation = 'none';
-                    setTimeout(() => {
-                        emojiElement.style.animation = 'pulse 2s infinite';
-                    }, 10);
-                }
             });
             
             // Initialize display
             const value = parseInt(slider.value);
             valueSpan.textContent = value;
-            if (emojiElement && emojiElement.classList.contains('intensity-emoji')) {
-                emojiElement.textContent = this.getIntensityEmoji(value);
-            }
         });
     }
 
@@ -517,10 +505,7 @@ class FoodDiaryApp {
     // INTERACTIVE FEATURES
     // =================
 
-    getIntensityEmoji(value) {
-        const emojis = ['😢', '😔', '😕', '😐', '🙂', '😊', '😄', '😁', '🤩', '🥳'];
-        return emojis[Math.min(value - 1, 9)] || '😐';
-    }
+
 
     selectMoodBubble(bubble) {
         const container = bubble.parentElement;
@@ -859,13 +844,6 @@ class FoodDiaryApp {
                 unlocked: this.entries.filter(e => e.mealPhoto).length >= 5
             },
             {
-                id: 'satisfaction_master',
-                title: '⭐ Satisfaction Élevée',
-                description: 'Maintenez une satisfaction moyenne de 4+',
-                condition: () => this.calculateAverageSatisfaction() >= 4,
-                unlocked: this.calculateAverageSatisfaction() >= 4
-            },
-            {
                 id: 'mindful_eater',
                 title: '🧘 Mangeur Conscient',
                 description: 'Utilisez 10 bulles d\'humeur différentes',
@@ -938,9 +916,6 @@ class FoodDiaryApp {
             case 'photo_lover':
                 const photos = this.entries.filter(e => e.mealPhoto).length;
                 return { current: Math.min(photos, 5), total: 5, percentage: Math.min(photos / 5 * 100, 100) };
-            case 'satisfaction_master':
-                const avgSat = this.calculateAverageSatisfaction();
-                return { current: Math.min(avgSat, 4).toFixed(1), total: 4, percentage: Math.min(avgSat / 4 * 100, 100) };
             case 'mindful_eater':
                 const moodCount = this.getUsedMoods().length;
                 return { current: Math.min(moodCount, 10), total: 10, percentage: Math.min(moodCount / 10 * 100, 100) };

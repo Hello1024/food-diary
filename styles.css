@@ -764,17 +764,7 @@ header p {
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
-/* Intensity Emoji */
-.intensity-emoji {
-    font-size: 1.5rem;
-    transition: all 0.3s ease;
-    animation: pulse 2s infinite;
-}
 
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
 
 /* Photo Upload */
 .photo-upload-area {
