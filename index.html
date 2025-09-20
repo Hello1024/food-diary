@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal Alimentaire - Roxane</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2196F3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Journal Alimentaire">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 Journal Alimentaire</h1>
+            <p>Enregistrez vos repas et habitudes alimentaires</p>
+        </header>
+
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="entry">🍽️ Nouveau Repas</button>
+            <button class="tab-btn" data-tab="history">📚 Historique</button>
+            <button class="tab-btn" data-tab="stats">📊 Statistiques</button>
+            <button class="tab-btn" data-tab="achievements">🏆 Succès</button>
+            <button class="tab-btn" data-tab="export">📤 Export</button>
+        </nav>
+
+        <!-- Entry Form Tab -->
+        <div id="entry-tab" class="tab-content active">
+            <!-- Daily Motivation -->
+            <div class="motivation-card">
+                <div class="quote-text" id="daily-quote">Chaque repas est une nouvelle opportunité de prendre soin de soi 🌟</div>
+                <button class="quote-refresh" onclick="app.refreshQuote()">🔄</button>
+            </div>
+
+            <!-- Daily Goals -->
+            <div class="daily-goals">
+                <h3>🎯 Objectifs du jour</h3>
+                <div class="goals-grid">
+                    <div class="goal-item" data-goal="breakfast">
+                        <span class="goal-emoji">🌅</span>
+                        <span class="goal-text">Petit-déjeuner</span>
+                        <div class="goal-status"></div>
+                    </div>
+                    <div class="goal-item" data-goal="lunch">
+                        <span class="goal-emoji">☀️</span>
+                        <span class="goal-text">Déjeuner</span>
+                        <div class="goal-status"></div>
+                    </div>
+                    <div class="goal-item" data-goal="dinner">
+                        <span class="goal-emoji">🌙</span>
+                        <span class="goal-text">Dîner</span>
+                        <div class="goal-status"></div>
+                    </div>
+                </div>
+            </div>
+
+            <form id="meal-form">
+                <div class="form-section">
+                    <h2>📝 Informations générales</h2>
+                    
+                    <div class="form-group">
+                        <label for="name">Nom</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meal-period">Période du repas</label>
+                        <select id="meal-period" name="mealPeriod" required>
+                            <option value="">Sélectionnez...</option>
+                            <option value="Matin">Matin</option>
+                            <option value="Matinée">Matinée</option>
+                            <option value="Midi">Midi</option>
+                            <option value="Après-Midi">Après-Midi</option>
+                            <option value="Soir">Soir</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meal-time">Heure et durée du repas</label>
+                        <textarea id="meal-time" name="mealTime" placeholder="Ex: 12h30 - 13h15 (45 minutes)"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Lieu</label>
+                        <input type="text" id="location" name="location" placeholder="Ex: Maison, Restaurant, Cafétéria...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="company">Seul(e) ou en compagnie ? Avec qui ?</label>
+                        <textarea id="company" name="company" placeholder="Ex: Seul(e), En famille, Avec des amis..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="who-prepared">Qui a préparé le repas ?</label>
+                        <input type="text" id="who-prepared" name="whoPrepared" placeholder="Ex: Moi-même, Maman, Restaurant...">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="activities">Activités pendant le repas</label>
+                        <textarea id="activities" name="activities" placeholder="Ex: En regardant un film, en discutant, en lisant..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>Composition du repas</h2>
+                    
+                    <div class="form-group">
+                        <label for="meal-composition">Composition de votre repas (n'oubliez pas les liquides)</label>
+                        <textarea id="meal-composition" name="mealComposition" rows="4" placeholder="Décrivez tous les aliments et boissons consommés..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meal-photo">📸 Photo du repas (optionnel)</label>
+                        <div class="photo-upload-area" id="photo-upload-area">
+                            <input type="file" id="meal-photo" name="mealPhoto" accept="image/*" style="display: none;">
+                            <div class="photo-placeholder" onclick="document.getElementById('meal-photo').click()">
+                                <span class="upload-icon">📷</span>
+                                <span class="upload-text">Ajouter une photo</span>
+                            </div>
+                            <div class="photo-preview" id="photo-preview" style="display: none;">
+                                <img id="preview-image" src="" alt="Preview">
+                                <button type="button" class="remove-photo" onclick="app.removePhoto()">❌</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meal-rating">⭐ Évaluation du repas</label>
+                        <div class="rating-container">
+                            <div class="rating-category">
+                                <span class="rating-label">Goût :</span>
+                                <div class="star-rating" data-rating="taste">
+                                    <span class="star" data-value="1">⭐</span>
+                                    <span class="star" data-value="2">⭐</span>
+                                    <span class="star" data-value="3">⭐</span>
+                                    <span class="star" data-value="4">⭐</span>
+                                    <span class="star" data-value="5">⭐</span>
+                                </div>
+                            </div>
+                            <div class="rating-category">
+                                <span class="rating-label">Satisfaction :</span>
+                                <div class="star-rating" data-rating="satisfaction">
+                                    <span class="star" data-value="1">⭐</span>
+                                    <span class="star" data-value="2">⭐</span>
+                                    <span class="star" data-value="3">⭐</span>
+                                    <span class="star" data-value="4">⭐</span>
+                                    <span class="star" data-value="5">⭐</span>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="tasteRating" id="taste-rating-value">
+                        <input type="hidden" name="satisfactionRating" id="satisfaction-rating-value">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="finished-meal">Avez-vous fini votre repas ?</label>
+                        <select id="finished-meal" name="finishedMeal">
+                            <option value="">Sélectionnez...</option>
+                            <option value="Oui, complètement">Oui, complètement</option>
+                            <option value="Partiellement">Partiellement</option>
+                            <option value="Non">Non</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>🧠 Pensées et sensations</h2>
+                    
+                    <div class="form-group">
+                        <label for="thoughts-before">Quelles sont vos pensées avant le repas ? (Intensité 1-10)</label>
+                        <div class="mood-bubbles" data-for="thoughts-before">
+                            <div class="mood-bubble" data-mood="anxious" data-color="#ff6b6b">😰 Anxieux</div>
+                            <div class="mood-bubble" data-mood="excited" data-color="#4ecdc4">😊 Excité</div>
+                            <div class="mood-bubble" data-mood="neutral" data-color="#95a5a6">😐 Neutre</div>
+                            <div class="mood-bubble" data-mood="hungry" data-color="#f39c12">🤤 Affamé</div>
+                            <div class="mood-bubble" data-mood="stressed" data-color="#e74c3c">😤 Stressé</div>
+                            <div class="mood-bubble" data-mood="happy" data-color="#2ecc71">😄 Heureux</div>
+                        </div>
+                        <textarea id="thoughts-before" name="thoughtsBefore" placeholder="Décrivez vos pensées..."></textarea>
+                        <div class="intensity-slider">
+                            <label for="intensity-before">Intensité :</label>
+                            <input type="range" id="intensity-before" name="intensityBefore" min="1" max="10" value="5">
+                            <span class="intensity-value">5</span>
+                            <div class="intensity-emoji" id="emoji-before">😐</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="thoughts-during">Quelles sont vos pensées pendant le repas ? (Intensité 1-10)</label>
+                        <div class="mood-bubbles" data-for="thoughts-during">
+                            <div class="mood-bubble" data-mood="enjoying" data-color="#2ecc71">😋 Savoureux</div>
+                            <div class="mood-bubble" data-mood="rushed" data-color="#f39c12">⏰ Pressé</div>
+                            <div class="mood-bubble" data-mood="distracted" data-color="#9b59b6">📱 Distrait</div>
+                            <div class="mood-bubble" data-mood="social" data-color="#3498db">👥 Social</div>
+                            <div class="mood-bubble" data-mood="mindful" data-color="#27ae60">🧘 Attentif</div>
+                            <div class="mood-bubble" data-mood="guilty" data-color="#e74c3c">😔 Coupable</div>
+                        </div>
+                        <textarea id="thoughts-during" name="thoughtsDuring" placeholder="Décrivez vos pensées..."></textarea>
+                        <div class="intensity-slider">
+                            <label for="intensity-during">Intensité :</label>
+                            <input type="range" id="intensity-during" name="intensityDuring" min="1" max="10" value="5">
+                            <span class="intensity-value">5</span>
+                            <div class="intensity-emoji" id="emoji-during">😐</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="thoughts-after">Quelles sont vos pensées après le repas ? (Intensité 1-10)</label>
+                        <div class="mood-bubbles" data-for="thoughts-after">
+                            <div class="mood-bubble" data-mood="satisfied" data-color="#2ecc71">😌 Satisfait</div>
+                            <div class="mood-bubble" data-mood="regretful" data-color="#e74c3c">😞 Regret</div>
+                            <div class="mood-bubble" data-mood="bloated" data-color="#f39c12">🤢 Ballonné</div>
+                            <div class="mood-bubble" data-mood="energized" data-color="#3498db">⚡ Énergisé</div>
+                            <div class="mood-bubble" data-mood="peaceful" data-color="#9b59b6">☮️ Paisible</div>
+                            <div class="mood-bubble" data-mood="sleepy" data-color="#95a5a6">😴 Somnolent</div>
+                        </div>
+                        <textarea id="thoughts-after" name="thoughtsAfter" placeholder="Décrivez vos pensées..."></textarea>
+                        <div class="intensity-slider">
+                            <label for="intensity-after">Intensité :</label>
+                            <input type="range" id="intensity-after" name="intensityAfter" min="1" max="10" value="5">
+                            <span class="intensity-value">5</span>
+                            <div class="intensity-emoji" id="emoji-after">😐</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="physical-sensations">Décrivez vos sensations physiques après le repas (Intensité 1-10)</label>
+                        <div class="mood-bubbles" data-for="physical-sensations">
+                            <div class="mood-bubble" data-mood="comfortable" data-color="#2ecc71">😊 Confortable</div>
+                            <div class="mood-bubble" data-mood="full" data-color="#f39c12">🤰 Plein</div>
+                            <div class="mood-bubble" data-mood="nauseous" data-color="#e74c3c">🤮 Nauséeux</div>
+                            <div class="mood-bubble" data-mood="light" data-color="#3498db">🕊️ Léger</div>
+                            <div class="mood-bubble" data-mood="heavy" data-color="#95a5a6">⚖️ Lourd</div>
+                            <div class="mood-bubble" data-mood="refreshed" data-color="#1abc9c">✨ Rafraîchi</div>
+                        </div>
+                        <textarea id="physical-sensations" name="physicalSensations" placeholder="Ex: Satiété, ballonnements, bien-être..."></textarea>
+                        <div class="intensity-slider">
+                            <label for="intensity-physical">Intensité :</label>
+                            <input type="range" id="intensity-physical" name="intensityPhysical" min="1" max="10" value="5">
+                            <span class="intensity-value">5</span>
+                            <div class="intensity-emoji" id="emoji-physical">😐</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>🎭 Comportements</h2>
+                    
+                    <div class="form-group">
+                        <label for="purging-behaviors">Avez-vous vomi, pris des laxatifs ou des diurétiques ?</label>
+                        <textarea id="purging-behaviors" name="purgingBehaviors" placeholder="Détaillez si applicable..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="binge-episode">Avez-vous eu un accès de boulimie ? (Intensité 1-10)</label>
+                        <textarea id="binge-episode" name="bingeEpisode" placeholder="Décrivez si applicable..."></textarea>
+                        <div class="intensity-slider">
+                            <label for="intensity-binge">Intensité :</label>
+                            <input type="range" id="intensity-binge" name="intensityBinge" min="1" max="10" value="1">
+                            <span class="intensity-value">1</span>
+                            <div class="intensity-emoji" id="emoji-binge">😐</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="exercise">Avez-vous fait de l'exercice ? Si oui lequel et combien de temps.</label>
+                        <textarea id="exercise" name="exercise" placeholder="Ex: Course à pied 30 minutes, Yoga 1h..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2>💭 Autres remarques</h2>
+                    
+                    <div class="form-group">
+                        <label for="other-remarks">Autres remarques</label>
+                        <textarea id="other-remarks" name="otherRemarks" placeholder="Toute autre information importante..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">💾 Enregistrer le repas</button>
+                    <button type="reset" class="btn-secondary">🔄 Effacer</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <div class="history-header">
+                <h2>Historique des repas</h2>
+                <button id="clear-history" class="btn-danger">🗑️ Vider l'historique</button>
+            </div>
+            <div id="history-list">
+                <!-- History items will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Statistics Tab -->
+        <div id="stats-tab" class="tab-content">
+            <div class="stats-section">
+                <h2>📊 Vos statistiques</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-meals">0</div>
+                        <div class="stat-label">Repas enregistrés</div>
+                        <div class="stat-emoji">🍽️</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="current-streak">0</div>
+                        <div class="stat-label">Jours consécutifs</div>
+                        <div class="stat-emoji">🔥</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="avg-satisfaction">0</div>
+                        <div class="stat-label">Satisfaction moyenne</div>
+                        <div class="stat-emoji">⭐</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="best-mood">😊</div>
+                        <div class="stat-label">Humeur dominante</div>
+                        <div class="stat-emoji">🎭</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>📈 Évolution de votre satisfaction</h3>
+                    <canvas id="satisfaction-chart" width="400" height="200"></canvas>
+                </div>
+
+                <div class="mood-analysis">
+                    <h3>🧠 Analyse des humeurs</h3>
+                    <div id="mood-breakdown"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Achievements Tab -->
+        <div id="achievements-tab" class="tab-content">
+            <div class="achievements-section">
+                <h2>🏆 Vos succès</h2>
+                <p>Débloquez des badges en maintenant de bonnes habitudes !</p>
+                
+                <div class="achievements-grid" id="achievements-grid">
+                    <!-- Achievements will be populated by JavaScript -->
+                </div>
+
+                <div class="progress-section">
+                    <h3>🎯 Progression vers les prochains succès</h3>
+                    <div id="progress-items">
+                        <!-- Progress items will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Tab -->
+        <div id="export-tab" class="tab-content">
+            <div class="export-section">
+                <h2>📤 Export des données</h2>
+                <p>Exportez vos données au format Excel/CSV pour analyse.</p>
+                
+                <div class="export-actions">
+                    <button id="export-csv" class="btn-primary">📊 Exporter en CSV</button>
+                    <button id="export-excel" class="btn-primary">📈 Exporter en Excel</button>
+                </div>
+
+                <div class="export-info">
+                    <h3>Format d'export</h3>
+                    <p>Le fichier contiendra toutes les colonnes requises :</p>
+                    <ul>
+                        <li>Nom, Date, Période du repas</li>
+                        <li>Heure et durée, Lieu, Compagnie</li>
+                        <li>Préparation, Activités, Composition</li>
+                        <li>Repas terminé, Pensées (avant/pendant/après)</li>
+                        <li>Sensations physiques, Comportements</li>
+                        <li>Exercice, Autres remarques</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div id="notification" class="notification hidden"></div>
+        
+        <!-- Floating Action Button for Quick Add -->
+        <div class="fab" id="quick-add-fab" title="Secouer pour effacer">
+            <span class="fab-icon">🎲</span>
+        </div>
+
+        <!-- Sound Effects -->
+        <audio id="success-sound" preload="auto">
+            <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcCjaH0fLNeCsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcCjaH0fLNeCsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmQcCjaH0fLNeSsFJHfH8N2QQAoUXrTo66hVFAlGnt/yv2UcCzWH0vLNeSsFJHfH8N2QQAoUXrTo66hVFAlGnt/yv2UcCzWH0vLNeSsFJHfH8N2QQAoUXrTo66hVFAlGnt/yv2UcCzWH0vLNeSsFJHfH8N2QQAoUXrTo66hVFAlGnt/yv2UcCzWH0vLNeSsFJHfH8N2QQAoUXrTo66pVFAlGnt/yv2UcCzSH0vLNeSoFJHfH8N2QQAkUXrPo66pVFAlGnt/yv2UcCzSH0vLNeSoFJHfH8N2QQAkUXrPo66pVFAlGnt/yv2UcCzSH0vLNeSoFJHfH8N2QQAkUXrPo66pVFAlGnt/yv2UcCzSH0vLNeSoFJHfH8N2QQAkUXrPo66pVFAlGnt/yv2UcCzSH0vLOeSoFJHbH8N2QQAkUXrPo66pVFAlGnt/yv2UcCzSH0fLOeSoFJHbH8N2QQAkUXrPo66pVFAlGnt/yv2UcCzSH0fLOeSoFJHbH8N2QQAkUXrPo66pVFAlGnt/yv2UcCzSH0fLOeSoFJHbH8N2QQAkUXrPo66pVFAlGnt/yv2UcCzSH0fLOeSoFJHbH8N2QQAkUXrPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv2UcCzOH0fLOeSoFJHbH8N2QQAkUXbPp66pVFAlGnt/yv" type="audio/wav">
+        </audio>
+        
+        <!-- Theme Toggle -->
+        <div class="theme-toggle" id="theme-toggle">
+            <span class="theme-icon">🌙</span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
