@@ -412,6 +412,65 @@ header p {
     border-bottom: none;
 }
 
+/* Daily Export Section */
+.daily-export-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+}
+
+.daily-export-section h3 {
+    color: white;
+    margin-bottom: 10px;
+    font-size: 1.3rem;
+}
+
+.daily-export-section p {
+    margin-bottom: 20px;
+    opacity: 0.9;
+}
+
+.daily-export-controls {
+    display: flex;
+    align-items: end;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.daily-export-controls .form-group {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 200px;
+}
+
+.daily-export-controls label {
+    color: white;
+    margin-bottom: 8px;
+    display: block;
+    font-weight: 500;
+}
+
+.daily-export-controls input[type="date"] {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    border-radius: 8px;
+    padding: 12px;
+    width: 100%;
+}
+
+.daily-export-controls input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+.daily-export-controls input[type="date"]:focus {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    outline: none;
+}
+
 /* Notifications */
 .notification {
     position: fixed;

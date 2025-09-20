@@ -57,6 +57,12 @@ class FoodDiaryApp {
             this.exportToExcel();
         });
 
+        // Daily export button
+        document.getElementById('export-daily').addEventListener('click', () => {
+            const selectedDate = document.getElementById('daily-export-date').value;
+            this.exportDailyFormat(selectedDate);
+        });
+
         // Clear history
         document.getElementById('clear-history').addEventListener('click', () => {
             this.clearHistory();
@@ -466,6 +472,145 @@ class FoodDiaryApp {
         
         // Change the last downloaded file name to .xlsx in notification
         this.showNotification('Export Excel téléchargé! (Format CSV compatible)', 'success');
+    }
+
+    exportDailyFormat(selectedDate) {
+        if (!selectedDate) {
+            this.showNotification('Veuillez sélectionner une date.', 'error');
+            return;
+        }
+
+        // Filter entries for the selected date
+        const dailyEntries = this.entries.filter(entry => entry.date === selectedDate);
+        
+        if (dailyEntries.length === 0) {
+            this.showNotification('Aucune donnée trouvée pour cette date.', 'error');
+            return;
+        }
+
+        // Define the meal periods as columns
+        const mealPeriods = ['Matin', 'Matinée', 'Midi', 'Après-Midi', 'Soir'];
+        
+        // Define the row labels (meal details)
+        const rowLabels = [
+            'Date',
+            'Heure et durée du repas',
+            'Lieu',
+            'Seul(e) ou en compagnie ? Avec qui ?',
+            'Qui a préparé le repas ?',
+            'Activités pendant le repas (en regardant un film, en discutant, …)',
+            'Composition de votre repas (n\'oubliez pas les liquides).',
+            'Avez-vous fini votre repas ?',
+            'Évaluation du goût (sur 5)',
+            'Évaluation de la satisfaction (sur 5)',
+            'Quelles sont vos pensées avant le repas ? Précisez l\'intensité sur une échelle de 1 à 10.',
+            'Quelles sont vos pensées pendant le repas ? Précisez l\'intensité sur une échelle de 1 à 10.',
+            'Quelles sont vos pensées après le repas ? Précisez l\'intensité sur une échelle de 1 à 10.',
+            'Décrivez vos sensations physiques après le repas. Précisez l\'intensité sur une échelle de 1 à 10.',
+            'Avez-vous vomi, pris des laxatifs ou des diurétiques ?',
+            'At/ou eu un accès de boulimique ? Précisez l\'intensité sur une échelle de 1 à 10.',
+            'Avez-vous fait de l\'exercice ? Si oui lequel et combien de temps.',
+            'Autres remarques.'
+        ];
+
+        // Create a map of entries by meal period
+        const entriesByPeriod = {};
+        dailyEntries.forEach(entry => {
+            entriesByPeriod[entry.mealPeriod] = entry;
+        });
+
+        // Build the CSV with meal periods as headers
+        const headers = ['Détails du repas', ...mealPeriods];
+        
+        const csvRows = [];
+        csvRows.push(headers.map(h => `"${h}"`).join(','));
+
+        // Create each row
+        rowLabels.forEach(rowLabel => {
+            const rowData = [rowLabel];
+            
+            mealPeriods.forEach(period => {
+                const entry = entriesByPeriod[period];
+                let cellValue = '';
+                
+                if (entry) {
+                    switch (rowLabel) {
+                        case 'Date':
+                            cellValue = entry.date || '';
+                            break;
+                        case 'Heure et durée du repas':
+                            cellValue = entry.mealTime || '';
+                            break;
+                        case 'Lieu':
+                            cellValue = entry.location || '';
+                            break;
+                        case 'Seul(e) ou en compagnie ? Avec qui ?':
+                            cellValue = entry.company || '';
+                            break;
+                        case 'Qui a préparé le repas ?':
+                            cellValue = entry.whoPrepared || '';
+                            break;
+                        case 'Activités pendant le repas (en regardant un film, en discutant, …)':
+                            cellValue = entry.activities || '';
+                            break;
+                        case 'Composition de votre repas (n\'oubliez pas les liquides).':
+                            cellValue = entry.mealComposition || '';
+                            break;
+                        case 'Avez-vous fini votre repas ?':
+                            cellValue = entry.finishedMeal || '';
+                            break;
+                        case 'Évaluation du goût (sur 5)':
+                            cellValue = entry.tasteRating ? `${entry.tasteRating}/5` : '';
+                            break;
+                        case 'Évaluation de la satisfaction (sur 5)':
+                            cellValue = entry.satisfactionRating ? `${entry.satisfactionRating}/5` : '';
+                            break;
+                        case 'Quelles sont vos pensées avant le repas ? Précisez l\'intensité sur une échelle de 1 à 10.':
+                            cellValue = entry.intensityBeforeText || '';
+                            break;
+                        case 'Quelles sont vos pensées pendant le repas ? Précisez l\'intensité sur une échelle de 1 à 10.':
+                            cellValue = entry.intensityDuringText || '';
+                            break;
+                        case 'Quelles sont vos pensées après le repas ? Précisez l\'intensité sur une échelle de 1 à 10.':
+                            cellValue = entry.intensityAfterText || '';
+                            break;
+                        case 'Décrivez vos sensations physiques après le repas. Précisez l\'intensité sur une échelle de 1 à 10.':
+                            cellValue = entry.intensityPhysicalText || '';
+                            break;
+                        case 'Avez-vous vomi, pris des laxatifs ou des diurétiques ?':
+                            cellValue = entry.purgingBehaviors || '';
+                            break;
+                        case 'At/ou eu un accès de boulimique ? Précisez l\'intensité sur une échelle de 1 à 10.':
+                            cellValue = entry.intensityBingeText || '';
+                            break;
+                        case 'Avez-vous fait de l\'exercice ? Si oui lequel et combien de temps.':
+                            cellValue = entry.exercise || '';
+                            break;
+                        case 'Autres remarques.':
+                            cellValue = entry.otherRemarks || '';
+                            break;
+                    }
+                }
+                
+                rowData.push(cellValue);
+            });
+            
+            csvRows.push(rowData.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','));
+        });
+
+        const csv = csvRows.join('\n');
+        
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `journal-alimentaire-quotidien-${selectedDate}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.showNotification(`Export quotidien pour le ${selectedDate} téléchargé!`, 'success');
     }
 
     loadEntries() {
