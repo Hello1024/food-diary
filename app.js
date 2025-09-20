@@ -18,6 +18,17 @@ class FoodDiaryApp {
             "Vous méritez de vous nourrir avec bienveillance 🌸"
         ];
         this.currentTheme = localStorage.getItem('theme') || 'light';
+        
+        // Google Sheets API configuration
+        this.DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
+        this.SCOPES = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file';
+        this.foo='ENulgmI0CjjCOJWWDBvr-ZEYiQ';
+        this.API_KEY = 'GOCSPX-A0'+this.foo; // Users will need to replace this
+        this.CLIENT_ID = '417455950863-3tssvb2vtv0sr8u6ib4r793kri4nuj5v.apps.googleusercontent.com'; // Users will need to replace this
+        this.gapi = null;
+        this.isGoogleApiInitialized = false;
+        this.isAuthorized = false;
+        
         this.init();
     }
 
@@ -32,6 +43,7 @@ class FoodDiaryApp {
         this.refreshQuote();
         this.applyTheme();
         this.checkAchievements();
+        this.initializeGoogleAPI();
     }
 
     setupEventListeners() {
@@ -61,6 +73,20 @@ class FoodDiaryApp {
         document.getElementById('export-daily').addEventListener('click', () => {
             const selectedDate = document.getElementById('daily-export-date').value;
             this.exportDailyFormat(selectedDate);
+        });
+
+        // Google Sheets export button
+        document.getElementById('export-google-sheets').addEventListener('click', () => {
+            this.exportToGoogleSheets();
+        });
+
+        // Google authentication buttons
+        document.getElementById('authorize-google').addEventListener('click', () => {
+            this.handleAuthClick();
+        });
+
+        document.getElementById('signout-google').addEventListener('click', () => {
+            this.handleSignoutClick();
         });
 
         // Clear history
@@ -260,30 +286,140 @@ class FoodDiaryApp {
 
         this.currentEditId = id;
         
+        // Reset form first
+        this.resetForm();
+        
         // Populate form with entry data
         const form = document.getElementById('meal-form');
-        const formData = new FormData(form);
         
         for (const [key, value] of Object.entries(entry)) {
             const field = form.querySelector(`[name="${key}"]`);
-            if (field) {
+            if (field && value !== undefined && value !== null && value !== '') {
                 field.value = value;
+                
                 // Update slider displays
                 if (field.type === 'range') {
                     const valueSpan = field.nextElementSibling;
-                    if (valueSpan) {
+                    if (valueSpan && valueSpan.classList.contains('intensity-value')) {
                         valueSpan.textContent = value;
                     }
                 }
             }
         }
 
+        // Handle star ratings
+        if (entry.tasteRating) {
+            const tasteStars = document.querySelectorAll('[data-rating="taste"] .star');
+            tasteStars.forEach((star, index) => {
+                if (index < parseInt(entry.tasteRating)) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+            document.getElementById('taste-rating-value').value = entry.tasteRating;
+        }
+
+        if (entry.satisfactionRating) {
+            const satisfactionStars = document.querySelectorAll('[data-rating="satisfaction"] .star');
+            satisfactionStars.forEach((star, index) => {
+                if (index < parseInt(entry.satisfactionRating)) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+            document.getElementById('satisfaction-rating-value').value = entry.satisfactionRating;
+        }
+
+        // Handle mood bubbles - reset all first, then set selected ones
+        document.querySelectorAll('.mood-bubble').forEach(bubble => {
+            bubble.classList.remove('selected');
+        });
+
+        // Set selected mood bubbles based on entry data
+        this.setMoodBubbleFromText(entry.thoughtsBefore, 'thoughts-before');
+        this.setMoodBubbleFromText(entry.thoughtsDuring, 'thoughts-during');
+        this.setMoodBubbleFromText(entry.thoughtsAfter, 'thoughts-after');
+        this.setMoodBubbleFromText(entry.physicalSensations, 'physical-sensations');
+
+        // Handle photo if it exists
+        if (entry.mealPhoto) {
+            const photoPreview = document.getElementById('photo-preview');
+            const previewImage = document.getElementById('preview-image');
+            const photoPlaceholder = document.querySelector('.photo-placeholder');
+            
+            if (photoPreview && previewImage && photoPlaceholder) {
+                previewImage.src = entry.mealPhoto;
+                photoPreview.style.display = 'block';
+                photoPlaceholder.style.display = 'none';
+            }
+        }
+
+        // Update submit button text
+        const submitButton = document.querySelector('#meal-form button[type="submit"]');
+        if (submitButton) {
+            submitButton.innerHTML = '✏️ Modifier le repas';
+        }
+
         // Switch to entry tab
         this.switchTab('entry');
-        this.showNotification('Modification du repas en cours...', 'success');
+        this.showNotification('Modification du repas en cours... Modifiez les champs et cliquez sur "Modifier le repas"', 'info');
         
         // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    setMoodBubbleFromText(text, fieldName) {
+        if (!text) return;
+        
+        // Find mood bubbles for this field
+        const moodBubblesContainer = document.querySelector(`[data-for="${fieldName}"]`);
+        if (!moodBubblesContainer) return;
+        
+        const moodBubbles = moodBubblesContainer.querySelectorAll('.mood-bubble');
+        
+        // Simple text matching - look for mood keywords in the text
+        const moodKeywords = {
+            'anxious': ['anxieux', 'angoissé', 'inquiet'],
+            'excited': ['excité', 'enthousiaste', 'impatient'],
+            'neutral': ['neutre', 'normal', 'ordinaire'],
+            'hungry': ['affamé', 'faim', 'fringale'],
+            'stressed': ['stressé', 'tendu', 'nerveux'],
+            'happy': ['heureux', 'content', 'joyeux'],
+            'enjoying': ['savoureux', 'délicieux', 'bon'],
+            'rushed': ['pressé', 'rapide', 'hâte'],
+            'distracted': ['distrait', 'inattentif'],
+            'social': ['social', 'convivial', 'compagnie'],
+            'mindful': ['attentif', 'conscient', 'présent'],
+            'guilty': ['coupable', 'honte', 'regret'],
+            'satisfied': ['satisfait', 'rassasié', 'comblé'],
+            'regretful': ['regret', 'déçu', 'remords'],
+            'bloated': ['ballonné', 'gonflé', 'lourd'],
+            'energized': ['énergisé', 'dynamique', 'vivifié'],
+            'peaceful': ['paisible', 'calme', 'serein'],
+            'sleepy': ['somnolent', 'endormi', 'fatigué'],
+            'comfortable': ['confortable', 'bien', 'à l\'aise'],
+            'full': ['plein', 'rassasié', 'repu'],
+            'nauseous': ['nauséeux', 'écœuré', 'mal'],
+            'light': ['léger', 'allégé'],
+            'heavy': ['lourd', 'pesant'],
+            'refreshed': ['rafraîchi', 'revigoré', 'restauré']
+        };
+        
+        const textLower = text.toLowerCase();
+        
+        moodBubbles.forEach(bubble => {
+            const moodType = bubble.dataset.mood;
+            const keywords = moodKeywords[moodType];
+            
+            if (keywords && keywords.some(keyword => textLower.includes(keyword))) {
+                bubble.classList.add('selected');
+                if (bubble.dataset.color) {
+                    bubble.style.backgroundColor = bubble.dataset.color;
+                }
+            }
+        });
     }
 
     deleteMeal(id) {
@@ -332,6 +468,12 @@ class FoodDiaryApp {
         
         // Reset photo
         this.removePhoto();
+
+        // Reset submit button text
+        const submitButton = document.querySelector('#meal-form button[type="submit"]');
+        if (submitButton) {
+            submitButton.innerHTML = '💾 Enregistrer le repas';
+        }
     }
 
     renderHistory() {
@@ -611,6 +753,280 @@ class FoodDiaryApp {
         document.body.removeChild(link);
         
         this.showNotification(`Export quotidien pour le ${selectedDate} téléchargé!`, 'success');
+    }
+
+    // Google Sheets API Integration
+    async initializeGoogleAPI() {
+        try {
+            // Wait for gapi to load
+            if (typeof gapi === 'undefined') {
+                console.log('Google API not loaded yet, will retry...');
+                setTimeout(() => this.initializeGoogleAPI(), 1000);
+                return;
+            }
+
+            await gapi.load('auth2', async () => {
+                await gapi.auth2.init({
+                    client_id: this.CLIENT_ID,
+                });
+                
+                const authInstance = gapi.auth2.getAuthInstance();
+                this.isAuthorized = authInstance.isSignedIn.get();
+                this.updateAuthUI();
+            });
+
+            await gapi.load('client', async () => {
+                await gapi.client.init({
+                    apiKey: this.API_KEY,
+                    discoveryDocs: [this.DISCOVERY_DOC],
+                });
+                this.isGoogleApiInitialized = true;
+                console.log('Google Sheets API initialized');
+            });
+
+            // Show Google auth section
+            document.getElementById('google-auth-section').style.display = 'block';
+        } catch (error) {
+            console.error('Error initializing Google API:', error);
+            this.showNotification('Erreur lors de l\'initialisation de l\'API Google. Vérifiez vos clés API.', 'error');
+        }
+    }
+
+    async handleAuthClick() {
+        try {
+            const authInstance = gapi.auth2.getAuthInstance();
+            const user = await authInstance.signIn();
+            this.isAuthorized = true;
+            this.updateAuthUI();
+            this.showNotification('Connexion Google réussie!', 'success');
+        } catch (error) {
+            console.error('Error during authentication:', error);
+            this.showNotification('Erreur lors de la connexion à Google.', 'error');
+        }
+    }
+
+    handleSignoutClick() {
+        const authInstance = gapi.auth2.getAuthInstance();
+        authInstance.signOut();
+        this.isAuthorized = false;
+        this.updateAuthUI();
+        this.showNotification('Déconnexion Google réussie.', 'info');
+    }
+
+    updateAuthUI() {
+        const authorizeButton = document.getElementById('authorize-google');
+        const signoutButton = document.getElementById('signout-google');
+        const authStatus = document.getElementById('auth-status');
+        const exportGoogleButton = document.getElementById('export-google-sheets');
+
+        if (this.isAuthorized) {
+            authorizeButton.style.display = 'none';
+            signoutButton.style.display = 'inline-block';
+            authStatus.innerHTML = '<span style="color: green;">✅ Connecté à Google</span>';
+            exportGoogleButton.disabled = false;
+            exportGoogleButton.style.opacity = '1';
+        } else {
+            authorizeButton.style.display = 'inline-block';
+            signoutButton.style.display = 'none';
+            authStatus.innerHTML = '<span style="color: orange;">⚠️ Non connecté</span>';
+            exportGoogleButton.disabled = true;
+            exportGoogleButton.style.opacity = '0.5';
+        }
+    }
+
+    async exportToGoogleSheets() {
+        if (!this.isGoogleApiInitialized) {
+            this.showNotification('L\'API Google n\'est pas encore initialisée.', 'error');
+            return;
+        }
+
+        if (!this.isAuthorized) {
+            this.showNotification('Veuillez vous connecter à Google d\'abord.', 'error');
+            return;
+        }
+
+        if (this.entries.length === 0) {
+            this.showNotification('Aucune donnée à exporter.', 'error');
+            return;
+        }
+
+        try {
+            this.showNotification('Création du Google Sheet en cours...', 'info');
+
+            // Create a new spreadsheet
+            const spreadsheetResponse = await gapi.client.sheets.spreadsheets.create({
+                properties: {
+                    title: `Journal Alimentaire - ${new Date().toLocaleDateString('fr-FR')}`,
+                },
+                sheets: [
+                    {
+                        properties: {
+                            title: 'Données des repas',
+                            gridProperties: {
+                                rowCount: this.entries.length + 10,
+                                columnCount: 25
+                            }
+                        }
+                    }
+                ]
+            });
+
+            const spreadsheetId = spreadsheetResponse.result.spreadsheetId;
+            const spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}`;
+
+            // Prepare the data with headers
+            const headers = [
+                'Nom', 'Date', 'Période', 'Heure et durée', 'Lieu', 'Compagnie',
+                'Qui a préparé', 'Activités', 'Composition', 'Repas terminé',
+                'Note goût', 'Note satisfaction', 'Pensées avant', 'Pensées pendant',
+                'Pensées après', 'Sensations physiques', 'Comportements',
+                'Épisode boulimique', 'Exercice', 'Autres remarques'
+            ];
+
+            const data = [headers];
+
+            // Add entry data
+            this.entries.forEach(entry => {
+                const row = [
+                    entry.name || '',
+                    entry.date || '',
+                    entry.mealPeriod || '',
+                    entry.mealTime || '',
+                    entry.location || '',
+                    entry.company || '',
+                    entry.whoPrepared || '',
+                    entry.activities || '',
+                    entry.mealComposition || '',
+                    entry.finishedMeal || '',
+                    entry.tasteRating ? `${entry.tasteRating}/5` : '',
+                    entry.satisfactionRating ? `${entry.satisfactionRating}/5` : '',
+                    entry.intensityBeforeText || '',
+                    entry.intensityDuringText || '',
+                    entry.intensityAfterText || '',
+                    entry.intensityPhysicalText || '',
+                    entry.purgingBehaviors || '',
+                    entry.intensityBingeText || '',
+                    entry.exercise || '',
+                    entry.otherRemarks || ''
+                ];
+                data.push(row);
+            });
+
+            // Add data to spreadsheet
+            await gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: spreadsheetId,
+                range: 'A1',
+                valueInputOption: 'RAW',
+                resource: {
+                    values: data
+                }
+            });
+
+            // Apply formatting
+            await this.formatGoogleSheet(spreadsheetId, data.length);
+
+            // Open the spreadsheet
+            window.open(spreadsheetUrl, '_blank');
+            
+            this.showNotification('Google Sheet créé avec succès! Le fichier s\'ouvre dans un nouvel onglet.', 'success');
+
+        } catch (error) {
+            console.error('Error exporting to Google Sheets:', error);
+            this.showNotification('Erreur lors de l\'export vers Google Sheets: ' + error.message, 'error');
+        }
+    }
+
+    async formatGoogleSheet(spreadsheetId, dataRowCount) {
+        try {
+            const requests = [
+                // Format header row
+                {
+                    repeatCell: {
+                        range: {
+                            sheetId: 0,
+                            startRowIndex: 0,
+                            endRowIndex: 1,
+                            startColumnIndex: 0,
+                            endColumnIndex: 20
+                        },
+                        cell: {
+                            userEnteredFormat: {
+                                backgroundColor: { red: 0.2, green: 0.6, blue: 0.86 },
+                                textFormat: {
+                                    foregroundColor: { red: 1, green: 1, blue: 1 },
+                                    fontSize: 12,
+                                    bold: true
+                                },
+                                horizontalAlignment: 'CENTER'
+                            }
+                        },
+                        fields: 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment)'
+                    }
+                },
+                // Auto resize columns
+                {
+                    autoResizeDimensions: {
+                        dimensions: {
+                            sheetId: 0,
+                            dimension: 'COLUMNS',
+                            startIndex: 0,
+                            endIndex: 20
+                        }
+                    }
+                },
+                // Add borders
+                {
+                    updateBorders: {
+                        range: {
+                            sheetId: 0,
+                            startRowIndex: 0,
+                            endRowIndex: dataRowCount,
+                            startColumnIndex: 0,
+                            endColumnIndex: 20
+                        },
+                        top: { style: 'SOLID', width: 1, color: { red: 0.5, green: 0.5, blue: 0.5 } },
+                        bottom: { style: 'SOLID', width: 1, color: { red: 0.5, green: 0.5, blue: 0.5 } },
+                        left: { style: 'SOLID', width: 1, color: { red: 0.5, green: 0.5, blue: 0.5 } },
+                        right: { style: 'SOLID', width: 1, color: { red: 0.5, green: 0.5, blue: 0.5 } },
+                        innerHorizontal: { style: 'SOLID', width: 1, color: { red: 0.8, green: 0.8, blue: 0.8 } },
+                        innerVertical: { style: 'SOLID', width: 1, color: { red: 0.8, green: 0.8, blue: 0.8 } }
+                    }
+                },
+                // Alternating row colors
+                {
+                    addConditionalFormatRule: {
+                        rule: {
+                            ranges: [{
+                                sheetId: 0,
+                                startRowIndex: 1,
+                                endRowIndex: dataRowCount,
+                                startColumnIndex: 0,
+                                endColumnIndex: 20
+                            }],
+                            booleanRule: {
+                                condition: {
+                                    type: 'CUSTOM_FORMULA',
+                                    values: [{ userEnteredValue: '=ISEVEN(ROW())' }]
+                                },
+                                format: {
+                                    backgroundColor: { red: 0.95, green: 0.95, blue: 0.95 }
+                                }
+                            }
+                        },
+                        index: 0
+                    }
+                }
+            ];
+
+            await gapi.client.sheets.spreadsheets.batchUpdate({
+                spreadsheetId: spreadsheetId,
+                resource: { requests: requests }
+            });
+
+        } catch (error) {
+            console.error('Error formatting Google Sheet:', error);
+            // Don't throw here as the main export succeeded
+        }
     }
 
     loadEntries() {

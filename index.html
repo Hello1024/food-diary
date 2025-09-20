@@ -10,6 +10,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Journal Alimentaire">
+    
+    <!-- Google APIs -->
+    <script src="https://apis.google.com/js/api.js"></script>
 </head>
 <body>
     <div class="container">
@@ -365,6 +368,17 @@
                 <div class="export-actions">
                     <button id="export-csv" class="btn-primary">📊 Exporter en CSV</button>
                     <button id="export-excel" class="btn-primary">📈 Exporter en Excel</button>
+                    <button id="export-google-sheets" class="btn-primary">📋 Exporter vers Google Sheets</button>
+                </div>
+
+                <div class="google-auth-section" id="google-auth-section" style="display: none;">
+                    <div class="auth-info">
+                        <h4>🔐 Authentification Google requise</h4>
+                        <p>Pour exporter vers Google Sheets, vous devez vous connecter à votre compte Google.</p>
+                        <button id="authorize-google" class="btn-secondary">🔑 Se connecter à Google</button>
+                        <button id="signout-google" class="btn-secondary" style="display: none;">🚪 Se déconnecter</button>
+                    </div>
+                    <div class="auth-status" id="auth-status"></div>
                 </div>
 
                 <div class="daily-export-section">

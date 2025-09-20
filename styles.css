@@ -471,6 +471,52 @@ header p {
     outline: none;
 }
 
+/* Google Authentication Section */
+.google-auth-section {
+    background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+}
+
+.google-auth-section h4 {
+    color: white;
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.google-auth-section p {
+    margin-bottom: 15px;
+    opacity: 0.9;
+}
+
+.auth-info {
+    margin-bottom: 15px;
+}
+
+.auth-status {
+    font-weight: 500;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    text-align: center;
+}
+
+#export-google-sheets:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #ccc;
+}
+
+#export-google-sheets:disabled:hover {
+    background: #ccc;
+    transform: none;
+}
+
 /* Notifications */
 .notification {
     position: fixed;
